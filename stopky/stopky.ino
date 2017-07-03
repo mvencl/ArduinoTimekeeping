@@ -66,6 +66,8 @@ int seven = 7;
 int eight = 127;
 int nine = 103;
 int empty = 0b00000000;
+int pi = 115;
+int el = 56;
 int numbers[] = {zero,one,two,three,four,five,six,seven,eight,nine};
 
 // Internal Vars
@@ -124,15 +126,7 @@ void loop() {
     DisplayOnLCD(finishedLeft, finishedLeftMillis, 0);
     DisplayOnLCD(finishedRight, finishedRightMillis, 1);
 
-    if(finishedLeft.secondstime() > finishedRight.secondstime())
-        addToBuffer(finishedLeft.minute(),finishedLeft.second(),finishedLeftMillis);
-    else if (finishedLeft.secondstime() < finishedRight.secondstime())
-        addToBuffer(finishedRight.minute(),finishedRight.second(),finishedRightMillis);        
-    else if(finishedLeftMillis > finishedRightMillis)
-        addToBuffer(finishedLeft.minute(),finishedLeft.second(),finishedLeftMillis);
-    else
-        addToBuffer(finishedRight.minute(),finishedRight.second(),finishedRightMillis);  
-    
+    printInfoToDisplay();
 
     if (digitalRead(exLeftButton) == LOW) stopLeft();
    
@@ -260,7 +254,36 @@ void SolveLCDButton(int btn){
       
 }
 
-void addToBuffer(int minits, int sec, int milsec){
+bool showLeft = true;
+bool showDisplayTime;
+
+void printInfoToDisplay()
+{
+    if(leftRun || rightRun)// if time is still running
+      showLeft = leftRun && !rightRun; // if left is running and right is not. Show first left time
+    
+    if(leftRun)    
+      addToBuffer(empty,finishedLeft.minute(),finishedLeft.second(),finishedLeftMillis);    
+    else if(rightRun)
+      addToBuffer(empty,finishedRight.minute(),finishedRight.second(),finishedRightMillis); 
+    else if(finishedLeft.secondstime() == DateTime(2017, 5, 3, 0, 0, 0).secondstime()) // is probably zero time
+      addToBuffer(empty,finishedLeft.minute(),finishedLeft.second(),finishedLeftMillis);    
+    else
+    {      
+      if(showLeft)
+        addToBuffer(el,finishedLeft.minute(),finishedLeft.second(),finishedLeftMillis);
+      else
+        addToBuffer(pi,finishedRight.minute(),finishedRight.second(),finishedRightMillis);
+
+      if(millis() - showDisplayTime > 3000)
+      {
+        showDisplayTime = millis();
+        showLeft = !showLeft;
+      }
+    }
+}
+
+void addToBuffer(int side, int minits, int sec, int milsec){
     
   // clear buffer
   memset(dataBuffer, 0, sizeof(dataBuffer));
@@ -277,6 +300,8 @@ void addToBuffer(int minits, int sec, int milsec){
     digit /= 10;
     c++;
   }
+    
+  dataBuffer[numberOfRegisters - 1] = side;
   
   writeBuffer();
 }
