@@ -65,7 +65,8 @@ int six = 125;
 int seven = 7;
 int eight = 127;
 int nine = 103;
-int empty = 0b00000000;
+//int empty = 0b00000000;
+int empty = 64;
 int pi = 115;
 int el = 56;
 int numbers[] = {zero,one,two,three,four,five,six,seven,eight,nine};
@@ -255,19 +256,22 @@ void SolveLCDButton(int btn){
 }
 
 bool showLeft = true;
-bool showDisplayTime;
+long showDisplayTime = 0;
 
 void printInfoToDisplay()
 {
     if(leftRun || rightRun)// if time is still running
+    {
       showLeft = leftRun && !rightRun; // if left is running and right is not. Show first left time
+      showDisplayTime = millis();
+    }
     
     if(leftRun)    
-      addToBuffer(empty,finishedLeft.minute(),finishedLeft.second(),finishedLeftMillis);    
+      addToBuffer(zero,finishedLeft.minute(),finishedLeft.second(),finishedLeftMillis);    
     else if(rightRun)
-      addToBuffer(empty,finishedRight.minute(),finishedRight.second(),finishedRightMillis); 
+      addToBuffer(zero,finishedRight.minute(),finishedRight.second(),finishedRightMillis); 
     else if(finishedLeft.secondstime() == DateTime(2017, 5, 3, 0, 0, 0).secondstime()) // is probably zero time
-      addToBuffer(empty,finishedLeft.minute(),finishedLeft.second(),finishedLeftMillis);    
+      addToBuffer(zero,finishedLeft.minute(),finishedLeft.second(),finishedLeftMillis);    
     else
     {      
       if(showLeft)
@@ -296,13 +300,15 @@ void addToBuffer(int side, int minits, int sec, int milsec){
   int c = 0;
   while( digit > 0 ){
     int b = numbers[digit % 10]; // modulus 10 of our input
-    dataBuffer[c] = b;
+    dataBuffer[c] = b;    
     digit /= 10;
     c++;
   }
+  if((side == el || side == pi) && minits == 0)
+    dataBuffer[4] = empty;
     
-  dataBuffer[numberOfRegisters - 1] = side;
-  
+  dataBuffer[5] = side;
+ 
   writeBuffer();
 }
 
