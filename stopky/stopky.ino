@@ -1,3 +1,8 @@
+// Wireless functions using a Arduino WiFi modul nRF24L01
+#include <SPI.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+
 // include the library code:
 #include <LiquidCrystal.h>
 
@@ -34,8 +39,8 @@ long beforeMillis, finishedLeftMillis, finishedRightMillis;
 
 //Button - Start
 
-int exLeftButton = 51;
-int exRightButton = 48;
+int exLeftButton = 47;
+int exRightButton = 46;
 int exStartButton = 30;
 int exResetButton = 44;
 
@@ -76,6 +81,17 @@ int dataBuffer[numberOfRegisters];
 
 //external display END
 
+//NRF - Start
+  #define CE_PIN 49
+  #define CSN_PIN 48
+  const byte adressReceiverTime[5] = {'R','x','T','i','M'};
+  RF24 radio1(CE_PIN, CSN_PIN); // Create a Radio
+
+  char dataToSend[24] = "L:00:00:000-R:00:00:000";
+  int dataReceived = 0; // this must match dataToSend in the TX "reset = 2" "start = 1"
+  bool newDataReceived = false;
+  long lastSendDataTime = 0;
+//NRF - End
 
 void setup() {    
     lcd.begin(16, 2);
@@ -119,6 +135,19 @@ void setup() {
     pinMode(clockPin, OUTPUT);
     pinMode(dataPin, OUTPUT);
 
+
+      //NRF setup
+      Serial.println("NRF setup");
+      if(! radio1.begin()){
+        Serial.println("Couldn't find NRF 1");
+        while (1);
+      }      
+    
+      radio1.setPALevel(RF24_PA_MAX);  // možnosti jsou RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH and RF24_PA_MAX
+      radio1.setDataRate( RF24_250KBPS );
+      radio1.setRetries(0,5); // delay, count
+      radio1.openWritingPipe(adressReceiverTime);   
+     
 }
 
 void loop() {   
@@ -158,6 +187,11 @@ void loop() {
           finishedRight = now;
           finishedRightMillis = actualMillis;
         }
+    }
+
+    if(leftRun || rightRun || (millis() - lastSendDataTime > 1000 )){
+      writeDataToWireless();
+      lastSendDataTime = millis();
     }
 }
 
@@ -320,4 +354,23 @@ void writeBuffer(){
   }  
   digitalWrite(latchPin, HIGH);
 }
+
+ void writeDataToWireless(){ //"L:00:00:000-R:00:00:000"
+  
+    char left[12] = "L:00:00:000";
+    sprintf(left, "L:%02d:%02d:%03d",  finishedLeft.minute(),finishedLeft.second(),finishedLeftMillis );
+    if(leftRun){ left[0] = 'C'; }
+    
+    char right[12] = "L:00:00:000";
+    sprintf(right, "R:%02d:%02d:%03d",  finishedRight.minute(),finishedRight.second(),finishedRightMillis );
+    if(rightRun){ right[0] = 'C'; }
+       
+    sprintf(dataToSend, "%s-%s",left, right );
+    
+    bool rslt;
+    Serial.print("Data Sent ");
+    Serial.println(dataToSend);    
+    rslt = radio1.write( &dataToSend, sizeof(dataToSend) );   
+
+ }
 
